@@ -134,60 +134,65 @@
     });
 
     // ---------- Download ----------
-    document.getElementById('downloadBtn').addEventListener('click', function() {
-      const img = document.querySelector('#qrResult img');
-      const canvas = document.querySelector('#qrResult canvas');
+document.getElementById('downloadBtn').addEventListener('click', function() {
+  const canvas = document.querySelector('#qrResult canvas');
+  const img = document.querySelector('#qrResult img');
 
-      let dataUrl;
-      if (img) {
-        dataUrl = img.src;
-      } else if (canvas) {
-        dataUrl = canvas.toDataURL("image/png");
-      } else {
-        alert("Pehle QR code banao!");
-        return;
-      }
+  let dataUrl = "";
 
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = "my_qrcode.png";
-      link.click();
-    });
+  if (canvas) {
+    dataUrl = canvas.toDataURL("image/png");
+  } else if (img && img.src && img.src.startsWith("data:image")) {
+    dataUrl = img.src;
+  }
 
-    // ---------- Share ----------
-    document.getElementById('shareBtn').addEventListener('click', async function() {
-      const canvas = document.querySelector('#qrResult canvas');
-      const img = document.querySelector('#qrResult img');
+  if (!dataUrl || !dataUrl.startsWith("data:image")) {
+    alert("QR image abhi taiyar nahi hui, dobara try karo.");
+    return;
+  }
 
-      if (!canvas && !img) {
-        alert("Pehle QR code banao!");
-        return;
-      }
+  const link = document.createElement('a');
+  link.href = dataUrl;
+  link.download = "my_qrcode.png";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+});
 
-      try {
-        let blob;
-        if (canvas) {
-          blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
-        } else {
-          const response = await fetch(img.src);
-          blob = await response.blob();
-        }
+// ---------- Share ----------
+document.getElementById('shareBtn').addEventListener('click', async function() {
+  const canvas = document.querySelector('#qrResult canvas');
+  const img = document.querySelector('#qrResult img');
 
-        const file = new File([blob], "qrcode.png", { type: "image/png" });
+  if (!canvas && !(img && img.src && img.src.startsWith("data:image"))) {
+    alert("QR image abhi taiyar nahi hui, dobara try karo.");
+    return;
+  }
 
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            files: [file],
-            title: "QR Code",
-            text: "Ye raha mera QR Code"
-          });
-        } else {
-          alert("Is device/browser mein direct share support nahi hai. Download karke phir share karo.");
-        }
-      } catch (err) {
-        console.log("Share error:", err);
-      }
-    });
+  try {
+    let blob;
+    if (canvas) {
+      blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+    } else {
+      const response = await fetch(img.src);
+      blob = await response.blob();
+    }
+
+    const file = new File([blob], "qrcode.png", { type: "image/png" });
+
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: "QR Code",
+        text: "Ye raha mera QR Code"
+      });
+    } else {
+      alert("Is browser mein direct share support nahi hai. Download karke share karo.");
+    }
+  } catch (err) {
+    console.log("Share error:", err);
+  }
+});
   </script>
 </body>
 </html>
