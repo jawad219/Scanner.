@@ -73,12 +73,6 @@
       display: block;
       max-width: 100%;
     }
-    #qrResult p {
-      color: #d32f2f;
-      font-size: 14px;
-      margin: 0;
-      max-width: 220px;
-    }
 
     #hintText {
       display: none;
@@ -142,21 +136,9 @@
         return;
       }
 
-      // Check karo library load hui hai ya nahi (internet chahiye is library ke liye)
-      if (typeof QRCode === "undefined") {
-        resultDiv.innerHTML = "<p>⚠️ Internet chalu karo aur dobara try karo (QR library load nahi ho payi)</p>";
-        return;
-      }
-
       const tempDiv = document.createElement('div');
-      try {
-        new QRCode(tempDiv, { text: text, width: 220, height: 220 });
-      } catch (e) {
-        resultDiv.innerHTML = "<p>⚠️ QR banane mein masla aaya, dobara try karo</p>";
-        return;
-      }
+      new QRCode(tempDiv, { text: text, width: 220, height: 220 });
 
-      // Thoda wait taake QR poori tarah render ho jaye
       setTimeout(() => {
         const canvas = tempDiv.querySelector('canvas');
         const img = tempDiv.querySelector('img');
@@ -167,47 +149,32 @@
           finalDataUrl = img.src;
         }
 
-        if (finalDataUrl) {
-          // Asal <img> tag banao — is se long-press-save kaam karega
-          const finalImg = document.createElement('img');
-          finalImg.src = finalDataUrl;
-          finalImg.width = 220;
-          finalImg.height = 220;
-          resultDiv.innerHTML = "";
-          resultDiv.appendChild(finalImg);
+        const finalImg = document.createElement('img');
+        finalImg.src = finalDataUrl;
+        finalImg.width = 220;
+        finalImg.height = 220;
+        resultDiv.innerHTML = "";
+        resultDiv.appendChild(finalImg);
 
-          document.getElementById('actionButtons').style.display = "flex";
-          document.getElementById('hintText').style.display = "block";
-        } else {
-          resultDiv.innerHTML = "<p>⚠️ Internet chalu karo aur dobara try karo</p>";
-        }
-      }, 400);
+        document.getElementById('actionButtons').style.display = "flex";
+        document.getElementById('hintText').style.display = "block";
+      }, 300);
     });
 
     // ---------- Download ----------
     document.getElementById('downloadBtn').addEventListener('click', function() {
-      if (!finalDataUrl) {
-        alert("QR image abhi taiyar nahi hui, dobara try karo.");
-        return;
-      }
-      try {
-        const link = document.createElement('a');
-        link.href = finalDataUrl;
-        link.download = "my_qrcode.png";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } catch (e) {
-        alert("Download button is app mein support nahi ho raha. QR image ko 2-3 second dabakar rakho aur 'Save Image' select karo.");
-      }
+      if (!finalDataUrl) return;
+      const link = document.createElement('a');
+      link.href = finalDataUrl;
+      link.download = "my_qrcode.png";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     });
 
     // ---------- Share ----------
     document.getElementById('shareBtn').addEventListener('click', async function() {
-      if (!finalDataUrl) {
-        alert("QR image abhi taiyar nahi hui, dobara try karo.");
-        return;
-      }
+      if (!finalDataUrl) return;
       try {
         const response = await fetch(finalDataUrl);
         const blob = await response.blob();
