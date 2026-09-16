@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QR Generator</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -85,12 +84,19 @@
       display: flex;
       gap: 10px;
     }
-    .action-row button {
+    .action-row button, .action-row a {
       flex: 1;
       margin-bottom: 0;
+      text-decoration: none;
+      color: white;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 15px;
+      display: block;
+      text-align: center;
     }
     .download-btn { background: #2196F3; }
-    .share-btn { background: #9C27B0; }
+    .share-btn { background: #9C27B0; border: none; cursor: pointer; }
     #actionButtons { display: none; }
   </style>
 </head>
@@ -105,10 +111,10 @@
     <button id="generateBtn">QR Code Banao</button>
 
     <div id="qrResult"></div>
-    <p id="hintText">📌 Agar Download kaam na kare, QR ko <b>2-3 second dabakar rakho</b> (long press) aur "Save Image" ya "Download Image" select karo.</p>
+    <p id="hintText">📌 Agar Download button kaam na kare, QR ko <b>2-3 second dabakar rakho</b> (long press) aur "Save Image" select karo.</p>
 
     <div class="action-row" id="actionButtons">
-      <button class="download-btn" id="downloadBtn">⬇️ Download</button>
+      <a href="#" class="download-btn" id="downloadBtn" download="my_qrcode.png">⬇️ Download</a>
       <button class="share-btn" id="shareBtn">📤 Share</button>
     </div>
   </div>
@@ -121,13 +127,12 @@
     let savedTheme = localStorage.getItem("theme") || "dark";
     document.body.className = savedTheme;
 
-    let finalDataUrl = "";
+    let currentImageUrl = "";
 
     document.getElementById('generateBtn').addEventListener('click', function() {
       const text = document.getElementById('qrText').value.trim();
       const resultDiv = document.getElementById('qrResult');
       resultDiv.innerHTML = "";
-      finalDataUrl = "";
       document.getElementById('actionButtons').style.display = "none";
       document.getElementById('hintText').style.display = "none";
 
@@ -136,47 +141,26 @@
         return;
       }
 
-      const tempDiv = document.createElement('div');
-      new QRCode(tempDiv, { text: text, width: 220, height: 220 });
+      // Real HTTPS image URL — is se WebView download bhi kaam karega
+      currentImageUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + encodeURIComponent(text);
 
-      setTimeout(() => {
-        const canvas = tempDiv.querySelector('canvas');
-        const img = tempDiv.querySelector('img');
+      const finalImg = document.createElement('img');
+      finalImg.src = currentImageUrl;
+      finalImg.width = 250;
+      finalImg.height = 250;
+      finalImg.crossOrigin = "anonymous";
+      resultDiv.appendChild(finalImg);
 
-        if (canvas) {
-          finalDataUrl = canvas.toDataURL("image/png");
-        } else if (img) {
-          finalDataUrl = img.src;
-        }
-
-        const finalImg = document.createElement('img');
-        finalImg.src = finalDataUrl;
-        finalImg.width = 220;
-        finalImg.height = 220;
-        resultDiv.innerHTML = "";
-        resultDiv.appendChild(finalImg);
-
-        document.getElementById('actionButtons').style.display = "flex";
-        document.getElementById('hintText').style.display = "block";
-      }, 300);
-    });
-
-    // ---------- Download ----------
-    document.getElementById('downloadBtn').addEventListener('click', function() {
-      if (!finalDataUrl) return;
-      const link = document.createElement('a');
-      link.href = finalDataUrl;
-      link.download = "my_qrcode.png";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      document.getElementById('downloadBtn').href = currentImageUrl;
+      document.getElementById('actionButtons').style.display = "flex";
+      document.getElementById('hintText').style.display = "block";
     });
 
     // ---------- Share ----------
     document.getElementById('shareBtn').addEventListener('click', async function() {
-      if (!finalDataUrl) return;
+      if (!currentImageUrl) return;
       try {
-        const response = await fetch(finalDataUrl);
+        const response = await fetch(currentImageUrl);
         const blob = await response.blob();
         const file = new File([blob], "qrcode.png", { type: "image/png" });
 
