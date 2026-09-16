@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Generator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: 20px 0;
+    }
+    body.dark { background: linear-gradient(135deg, #1f1f1f, #0d0d0d); color: white; }
+    body.light { background: linear-gradient(135deg, #f0f0f0, #ffffff); color: #111; }
+
+    .container { width: 90%; max-width: 400px; text-align: center; }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+    .back-btn {
+      background: #444;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    h2 { margin: 0; font-size: 20px; }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #2a2a2a;
+      color: white;
+      font-size: 15px;
+      margin-bottom: 12px;
+    }
+    body.light input { background: #fff; color: #111; border: 1px solid #ccc; }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      cursor: pointer;
+      margin-bottom: 12px;
+    }
+
+    #qrResult {
+      background: white;
+      padding: 20px;
+      border-radius: 14px;
+      display: inline-block;
+      min-height: 50px;
+      margin-bottom: 8px;
+    }
+    #qrResult img {
+      display: block;
+      max-width: 100%;
+    }
+    #qrResult p {
+      color: #d32f2f;
+      font-size: 14px;
+      margin: 0;
+      max-width: 220px;
+    }
+
+    #hintText {
+      display: none;
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 16px;
+    }
+
+    .action-row {
+      display: flex;
+      gap: 10px;
+    }
+    .action-row button {
+      flex: 1;
+      margin-bottom: 0;
+    }
+    .download-btn { background: #2196F3; }
+    .share-btn { background: #9C27B0; }
+    #actionButtons { display: none; }
+  </style>
+</head>
+<body class="dark">
+  <div class="container">
+    <div class="header">
+      <h2>✏️ QR Banao</h2>
+      <a href="scanner.html" class="back-btn">⬅ Wapas</a>
+    </div>
+
+    <input type="text" id="qrText" placeholder="Link ya text daalo...">
+    <button id="generateBtn">QR Code Banao</button>
+
+    <div id="qrResult"></div>
+    <p id="hintText">📌 Agar Download kaam na kare, QR ko <b>2-3 second dabakar rakho</b> (long press) aur "Save Image" ya "Download Image" select karo.</p>
+
+    <div class="action-row" id="actionButtons">
+      <button class="download-btn" id="downloadBtn">⬇️ Download</button>
+      <button class="share-btn" id="shareBtn">📤 Share</button>
+    </div>
+  </div>
+
+  <script>
+    if (localStorage.getItem("loggedIn") !== "true") {
+      window.location.href = "index.html";
+    }
+
+    let savedTheme = localStorage.getItem("theme") || "dark";
+    document.body.className = savedTheme;
+
+    let finalDataUrl = "";
+
+    document.getElementById('generateBtn').addEventListener('click', function() {
+      const text = document.getElementById('qrText').value.trim();
+      const resultDiv = document.getElementById('qrResult');
+      resultDiv.innerHTML = "";
+      finalDataUrl = "";
+      document.getElementById('actionButtons').style.display = "none";
+      document.getElementById('hintText').style.display = "none";
+
+      if (!text) {
+        alert("Pehle kuch likho ya link daalo!");
+        return;
+      }
+
+      // Check karo library load hui hai ya nahi (internet chahiye is library ke liye)
+      if (typeof QRCode === "undefined") {
+        resultDiv.innerHTML = "<p>⚠️ Internet chalu karo aur dobara try karo (QR library load nahi ho payi)</p>";
+        return;
+      }
+
+      const tempDiv = document.createElement('div');
+      try {
+        new QRCode(tempDiv, { text: text, width: 220, height: 220 });
+      } catch (e) {
+        resultDiv.innerHTML = "<p>⚠️ QR banane mein masla aaya, dobara try karo</p>";
+        return;
+      }
+
+      // Thoda wait taake QR poori tarah render ho jaye
+      setTimeout(() => {
+        const canvas = tempDiv.querySelector('canvas');
+        const img = tempDiv.querySelector('img');
+
+        if (canvas) {
+          finalDataUrl = canvas.toDataURL("image/png");
+        } else if (img) {
+          finalDataUrl = img.src;
+        }
+
+        if (finalDataUrl) {
+          // Asal <img> tag banao — is se long-press-save kaam karega
+          const finalImg = document.createElement('img');
+          finalImg.src = finalDataUrl;
+          finalImg.width = 220;
+          finalImg.height = 220;
+          resultDiv.innerHTML = "";
+          resultDiv.appendChild(finalImg);
+
+          document.getElementById('actionButtons').style.display = "flex";
+          document.getElementById('hintText').style.display = "block";
+        } else {
+          resultDiv.innerHTML = "<p>⚠️ Internet chalu karo aur dobara try karo</p>";
+        }
+      }, 400);
+    });
+
+    // ---------- Download ----------
+    document.getElementById('downloadBtn').addEventListener('click', function() {
+      if (!finalDataUrl) {
+        alert("QR image abhi taiyar nahi hui, dobara try karo.");
+        return;
+      }
+      try {
+        const link = document.createElement('a');
+        link.href = finalDataUrl;
+        link.download = "my_qrcode.png";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (e) {
+        alert("Download button is app mein support nahi ho raha. QR image ko 2-3 second dabakar rakho aur 'Save Image' select karo.");
+      }
+    });
+
+    // ---------- Share ----------
+    document.getElementById('shareBtn').addEventListener('click', async function() {
+      if (!finalDataUrl) {
+        alert("QR image abhi taiyar nahi hui, dobara try karo.");
+        return;
+      }
+      try {
+        const response = await fetch(finalDataUrl);
+        const blob = await response.blob();
+        const file = new File([blob], "qrcode.png", { type: "image/png" });
+
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: "QR Code",
+            text: "Ye raha mera QR Code"
+          });
+        } else {
+          alert("Is app mein direct share support nahi hai. QR ko dabakar rakho aur 'Share' se bhej do.");
+        }
+      } catch (err) {
+        alert("QR ko 2-3 second dabakar rakho, phir 'Share' option se bhej do.");
+      }
+    });
+  </script>
+</body>
+</html>
